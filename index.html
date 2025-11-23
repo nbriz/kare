@@ -1,1 +1,41 @@
-<h1>Hello World Wide Web!</h1>
+<script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
+<script>
+  /* global nn */
+  
+  const icons = [
+    'bin', 'bomb', 'file-graphic', 'file-vector',
+    'folder', 'mac-happy', 'news', 'save'
+  ]
+  
+  async function draw () {
+    const size = nn.random([32, 64, 128])
+    const icon = nn.random(icons)
+    const path = `icons/${icon}.svg`
+    const x = nn.random(nn.width) - size
+    const y = nn.random(nn.height) - size
+    const hue = nn.random(360)
+    const img = nn.create('img')
+      .set('src', path)
+      .css('width', size)
+      .css('pointer-events', 'none')
+      .css('user-select', 'none')
+      .css('transition', 'transform 1s')
+      .hueRotate(hue)
+      .positionOrigin('center')
+      .position(x, y)
+      .addTo('body')
+    
+    await nn.sleep(1000)
+    img.scale(0)
+    await nn.sleep(1000)
+    img.remove()
+  }
+  
+  function animate () {
+    setTimeout(animate, 250)
+    draw()
+  }
+
+  nn.on('click', draw)
+  nn.on('load', animate)
+</script>
