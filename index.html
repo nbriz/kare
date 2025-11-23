@@ -10,20 +10,20 @@
     'folder', 'mac-happy', 'news', 'save'
   ]
   
-  let hue = 0
   const dur = 10
+  const size = 8
+  let x = nn.width / 2 - size / 2
+  let y = nn.height / 2 - size / 2
+  let hue = 0
+  let z = 1 
   
   function draw () {
-    const size = 8
     // const icon = nn.random(icons)
     const icon = 'file-vector'
     const path = `icons/${icon}.svg`
-    // const x = nn.random(nn.width) - size
-    // const y = nn.random(nn.height) - size
-    const x = nn.width / 2 - size / 2
-    const y = nn.height / 2 - size / 2
-    // const hue = nn.random(360)
-    hue+=20
+    hue += 40
+    z -= 1
+    
     const img = nn.create('img')
       .set('src', path)
       .css('width', size)
@@ -34,18 +34,20 @@
       .hueRotate(hue)
       .positionOrigin('center')
       .position(x, y)
+      .css('z-index', z)
       .addTo('body')
+      
     return img
   }
   
   async function growIcon (img) {
     await nn.sleep(100)
     img.scale(100)
-    // img.blur(2)
-    // img.css('opacity', 0)
+    img.css('opacity', 1)
     await nn.sleep(dur * 1000)
+    img.css('transition', `all ${dur/4}s linear`)
     img.css('opacity', 0)
-    await nn.sleep(dur * 1000)
+    await nn.sleep(dur/4 * 1000)
     img.remove()
   }
 
@@ -58,4 +60,8 @@
 
   // nn.on('click', draw)
   nn.on('load', animate)
+  // nn.on('mousemove', () => {
+  //   x = nn.mouseX
+  //   y = nn.mouseY
+  // })
 </script>
