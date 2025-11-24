@@ -1,67 +1,45 @@
 <body></body>
 <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
+<!-- <script src="file-zoom.js"></script> -->
 <script>
   /* global nn */
   
   nn.get('body').css('overflow', 'hidden')
   
+  const c = nn.create('canvas').addTo('body')
+  
   const icons = [
-    'bin', 'bomb', 'file-graphic', 'file-vector',
-    'folder', 'mac-happy', 'news', 'save'
+    'bin', 'bomb', 'folder', 'file-vector',
+    'file-graphic', 'mac-happy', 'news', 'save'
   ]
   
-  const dur = 10
-  const size = 8
-  let x = nn.width / 2 - size / 2
-  let y = nn.height / 2 - size / 2
-  let hue = 0
-  let z = 1 
-  
-  function draw () {
-    // const icon = nn.random(icons)
-    const icon = 'file-vector'
-    const path = `icons/${icon}.svg`
-    hue += 40
-    z -= 1
+  function setup () {
+    c.width = nn.width
+    c.height = nn.height
+    c.position(0, 0)
     
-    const img = nn.create('img')
-      .set('src', path)
-      .css('width', size)
-      .css('pointer-events', 'none')
-      .css('user-select', 'none')
-      .css('opacity', 0.5)
-      .css('transition', `all ${dur}s linear`)
-      .hueRotate(hue)
-      .positionOrigin('center')
-      .position(x, y)
-      .css('z-index', z)
-      .addTo('body')
-      
-    return img
-  }
-  
-  async function growIcon (img) {
-    await nn.sleep(100)
-    img.scale(100)
-    img.css('opacity', 1)
-    await nn.sleep(dur * 1000)
-    img.css('transition', `all ${dur/4}s linear`)
-    img.css('opacity', 0)
-    await nn.sleep(dur/4 * 1000)
-    img.remove()
+    const cx = nn.width / 2
+    const cy = nn.height / 2
+    const sz = 148
+    let x = cx - (sz * 2)
+    let y = cy - sz
+    icons.forEach((icon, i) => {
+      if (i >= icons.length / 2 && y < cy) {
+        y += sz
+        x = cx - (sz * 2)
+      }
+      const path = `icons/${icon}.svg`
+      c.drawImage(path, x, y)
+      x += sz
+    })
   }
 
 
   function animate () {
     setTimeout(animate, 1000)
-    const img = draw()
-    growIcon(img)
+
   }
 
-  // nn.on('click', draw)
+  nn.on('load', setup)
   nn.on('load', animate)
-  // nn.on('mousemove', () => {
-  //   x = nn.mouseX
-  //   y = nn.mouseY
-  // })
 </script>

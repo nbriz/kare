@@ -1,0 +1,60 @@
+/* global nn */
+  
+  nn.get('body').css('overflow', 'hidden')
+  
+  const icons = [
+    'bin', 'bomb', 'file-graphic', 'file-vector',
+    'folder', 'mac-happy', 'news', 'save'
+  ]
+  
+  const dur = 10
+  const size = 8
+  let hue = 0
+  let z = 1 
+  
+  function draw () {
+    let x = nn.width / 2 - size / 2
+    let y = nn.height / 2 - size / 2
+    console.log(x, y)
+                // const icon = nn.random(icons)
+    const icon = 'file-vector'
+    const path = `icons/${icon}.svg`
+    hue += 40
+    z -= 1
+    
+    const img = nn.create('img')
+      .set('src', path)
+      .css('width', size)
+      .css('pointer-events', 'none')
+      .css('user-select', 'none')
+      .css('opacity', 0.5)
+      .css('transition', `all ${dur}s linear`)
+      .hueRotate(hue)
+      .positionOrigin('center')
+      .position(x, y)
+      .css('z-index', z)
+      .addTo('body')
+      
+    return img
+  }
+  
+  async function growIcon (img) {
+    await nn.sleep(100)
+    img.scale(100)
+    img.css('opacity', 1)
+    await nn.sleep(dur * 1000)
+    img.css('transition', `all ${dur/4}s linear`)
+    img.css('opacity', 0)
+    await nn.sleep(dur/4 * 1000)
+    img.remove()
+  }
+
+
+  function animate () {
+    setTimeout(animate, 1000)
+    const img = draw()
+    growIcon(img)
+  }
+
+  // nn.on('click', draw)
+  nn.on('load', animate)
