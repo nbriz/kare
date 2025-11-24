@@ -1,3 +1,4 @@
+<title>Kare Icons</title>
 <body></body>
 <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
 <!-- <script src="file-zoom.js"></script> -->
@@ -13,7 +14,26 @@
     'file-graphic', 'mac-happy', 'news', 'save'
   ]
   
-  function setup () {
+  const objs = []
+  let hue = 270
+  
+  function hueShiftCanvas (deg) {
+    let pixels = c.getPixels()
+    for (let i = 0; i < pixels.length; i++) {
+      const p = pixels[i]
+      if (p.a === 0) continue
+      const hsv = nn.rgb2hsv(p.r, p.g, p.b)
+      hsv.h = (hsv.h + deg) % 360
+      if (hsv.h < 0) hsv.h += 360
+      const rgb = nn.hsv2rgb(hsv.h, hsv.s, hsv.v)
+      p.r = rgb.r
+      p.g = rgb.g
+      p.b = rgb.b
+    }
+    c.setPixels(pixels)
+  }
+  
+  async function setup () {
     c.width = nn.width
     c.height = nn.height
     c.position(0, 0)
@@ -31,13 +51,33 @@
       const path = `icons/${icon}.svg`
       c.drawImage(path, x, y)
       x += sz
+      const r = nn.random(-3,3)
+      objs.push({ icon, x, y, r })
     })
+    
+    await nn.sleep(100)
+    hueShiftCanvas(hue)
   }
 
 
   function animate () {
-    setTimeout(animate, 1000)
-
+    requestAnimationFrame(animate)
+    const t = performance.now()
+    
+    c.fillStyle = 'rgba(255, 255, 255, 0.09)'
+    c.rect(0, 0, c.width, c.height)
+    
+    objs.forEach(o => {
+      o.r += 0.01
+      if (nn.random() > 0.99) o.r = -o.r
+      o.x += Math.sin(t * 0.001) * o.r
+      o.y += Math.cos(t * 0.001) * o.r
+      const path = `icons/${o.icon}.svg`
+      c.drawImage(path, o.x, o.y)
+    })
+    
+    hue += 1
+    hueShiftCanvas(hue)
   }
 
   nn.on('load', setup)
