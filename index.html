@@ -1,85 +1,152 @@
 <title>Kare Icons</title>
 <body></body>
 <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
-<!-- <script src="file-zoom.js"></script> -->
 <script>
   /* global nn */
-  
+
   nn.get('body').css('overflow', 'hidden')
-  
   const c = nn.create('canvas').addTo('body')
-  
-  const icons = [
+  const c2 = nn.create('canvas').addTo('body')
+  const holdTime = 1000
+
+  const iconNames = [
     'bin', 'bomb', 'folder', 'file-vector',
     'file-graphic', 'mac-happy', 'news', 'save'
   ]
-  
-  const objs = []
-  let hue = 270
-  
-  function hueShiftCanvas (deg) {
-    let pixels = c.getPixels()
-    for (let i = 0; i < pixels.length; i++) {
-      const p = pixels[i]
-      if (p.a === 0) continue
-      const hsv = nn.rgb2hsv(p.r, p.g, p.b)
-      hsv.h = (hsv.h + deg) % 360
-      if (hsv.h < 0) hsv.h += 360
-      const rgb = nn.hsv2rgb(hsv.h, hsv.s, hsv.v)
-      p.r = rgb.r
-      p.g = rgb.g
-      p.b = rgb.b
-    }
-    c.setPixels(pixels)
-  }
-  
-  async function setup () {
+
+  const icons = []
+  const maskSize = 32
+  const pixelSize = 4
+  const iconSize = maskSize * pixelSize
+  let hue = 0
+
+  function resizeCanvas () {
     c.width = nn.width
     c.height = nn.height
     c.position(0, 0)
-    
-    const cx = nn.width / 2
-    const cy = nn.height / 2
-    const sz = 148
-    let x = cx - (sz * 2)
-    let y = cy - sz
-    icons.forEach((icon, i) => {
-      if (i >= icons.length / 2 && y < cy) {
-        y += sz
-        x = cx - (sz * 2)
-      }
-      const path = `icons/${icon}.svg`
-      c.drawImage(path, x, y)
-      x += sz
-      const r = nn.random(-3,3)
-      objs.push({ icon, x, y, r })
-    })
-    
-    await nn.sleep(100)
-    hueShiftCanvas(hue)
+    c2.width = nn.width
+    c2.height = nn.height
+    c2.position(0, 0)
   }
 
+  function makeMaskFromSvg (name, size) {
+    return new Promise(resolve => {
+      const img = new Image()
+      img.src = `icons/${name}.svg`
+
+      img.onload = () => {
+        const buffer = document.createElement('canvas')
+        const bctx = buffer.getContext('2d')
+
+        buffer.width = size
+        buffer.height = size
+
+        bctx.clearRect(0, 0, size, size)
+        bctx.drawImage(img, 0, 0, size, size)
+
+        const imgData = bctx.getImageData(0, 0, size, size).data
+        const data = []
+
+        for (let i = 0; i < imgData.length; i += 4) {
+          const r = imgData[i]
+          const g = imgData[i + 1]
+          const b = imgData[i + 2]
+          const a = imgData[i + 3]
+
+          // treat any non-transparent-ish red pixel as "on"
+          const isOn = a > 0 && r > 80 && r > g && r > b
+          data.push(isOn ? 1 : 0)
+        }
+
+        resolve({ w: size, h: size, data })
+      }
+    })
+  }
+
+  function drawIconFromMask (mask, x, y, pixSize, color, canv) {
+    const { w, h, data } = mask
+    canv = canv || c
+    canv.fillStyle = color
+
+    let idx = 0
+    for (let row = 0; row < h; row++) {
+      for (let col = 0; col < w; col++) {
+        if (data[idx]) {
+          canv.fillRect(
+            x + col * pixSize,
+            y + row * pixSize,
+            pixSize,
+            pixSize
+          )
+        }
+        idx++
+      }
+    }
+  }
+
+  async function setup () {
+    resizeCanvas()
+
+    // build masks and icon objects in one pass
+    const tasks = iconNames.map(async name => {
+      const mask = await makeMaskFromSvg(name, maskSize)
+      let r = nn.random(0.25, 1)
+      if (nn.random() < 0.5) r = -r
+      icons.push({ name, mask, x: 0, y: 0, r })
+    })
+
+    await Promise.all(tasks)
+
+    // lay them out in a 2x4 grid
+    const cx = nn.width / 2
+    const cy = nn.height / 2
+    const ps = iconSize + 40 // padded size
+    let x = cx - (ps * 2)
+    let y = cy - ps
+
+    icons.forEach((icon, i) => {
+      if (i >= icons.length / 2 && y < cy) {
+        y += ps
+        x = cx - (ps * 2)
+      }
+      icon.x = x
+      icon.y = y
+      // initial black icons
+      drawIconFromMask(icon.mask, icon.x, icon.y, pixelSize, 'black')
+      x += ps
+    })
+  }
 
   function animate () {
     requestAnimationFrame(animate)
     const t = performance.now()
-    
-    c.fillStyle = 'rgba(255, 255, 255, 0.09)'
-    c.rect(0, 0, c.width, c.height)
-    
-    objs.forEach(o => {
-      o.r += 0.01
-      if (nn.random() > 0.99) o.r = -o.r
-      o.x += Math.sin(t * 0.001) * o.r
-      o.y += Math.cos(t * 0.001) * o.r
-      const path = `icons/${o.icon}.svg`
-      c.drawImage(path, o.x, o.y)
+
+//     c.fillStyle = 'rgba(255, 255, 255, 0.005)'
+//     c.fillRect(0, 0, c.width, c.height)
+
+    c2.clear()
+    const color = 'hsl(' + hue + ', 80%, 40%)'
+
+    icons.forEach(icon => {
+      icon.r += 0.001
+      if (nn.random() > 0.99) icon.r = -icon.r
+
+      icon.x += Math.sin(t * 0.001) * icon.r
+      icon.y += Math.cos(t * 0.001) * icon.r
+
+      drawIconFromMask(icon.mask, icon.x, icon.y, pixelSize, color)
+      drawIconFromMask(icon.mask, icon.x, icon.y, pixelSize, 'black', c2)
     })
-    
-    hue += 1
-    hueShiftCanvas(hue)
+
+    // global hue, same for all icons
+    hue += 2
+    c.hueRotate(hue)
   }
 
-  nn.on('load', setup)
-  nn.on('load', animate)
+  nn.on('resize', resizeCanvas)
+  nn.on('load', async () => {
+    await setup()
+    await nn.sleep(holdTime)
+    animate()
+  })
 </script>
