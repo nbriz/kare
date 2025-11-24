@@ -90,9 +90,16 @@
     // build masks and icon objects in one pass
     const tasks = iconNames.map(async name => {
       const mask = await makeMaskFromSvg(name, maskSize)
-      let r = nn.random(0.25, 1)
-      if (nn.random() < 0.5) r = -r
-      icons.push({ name, mask, x: 0, y: 0, r })
+      let rx = nn.random(0.25, 1)
+      if (nn.random() < 0.5) rx = -rx
+      let ry = nn.random(0.25, 1)
+      if (nn.random() < 0.5) ry = -ry
+      const ox = rx
+      const oy = ry
+      const s = nn.random(0.001, 0.01)
+      const x = 0
+      const y = 0
+      icons.push({ name, mask, x, y, s, rx, ox, ry, oy })
     })
 
     await Promise.all(tasks)
@@ -121,18 +128,28 @@
     requestAnimationFrame(animate)
     const t = performance.now()
 
-//     c.fillStyle = 'rgba(255, 255, 255, 0.005)'
-//     c.fillRect(0, 0, c.width, c.height)
+    c.fillStyle = 'rgba(255, 255, 255, 0.005)'
+    c.fillRect(0, 0, c.width, c.height)
 
     c2.clear()
     const color = 'hsl(' + hue + ', 80%, 40%)'
 
     icons.forEach(icon => {
-      icon.r += 0.001
-      if (nn.random() > 0.99) icon.r = -icon.r
+      icon.rx += icon.s
+      icon.rx += icon.s
+      if (nn.random() > 0.99) {
+        icon.rx = icon.ox
+        icon.rx = -icon.rx
+        icon.ox = -icon.ox
+      }
+      if (nn.random() > 0.99) {
+        icon.ry = icon.oy
+        icon.ry = -icon.ry
+        icon.oy = -icon.oy
+      }
 
-      icon.x += Math.sin(t * 0.001) * icon.r
-      icon.y += Math.cos(t * 0.001) * icon.r
+      icon.x += Math.sin(t * 0.001) * icon.rx
+      icon.y += Math.cos(t * 0.001) * icon.ry
 
       drawIconFromMask(icon.mask, icon.x, icon.y, pixelSize, color)
       drawIconFromMask(icon.mask, icon.x, icon.y, pixelSize, 'black', c2)
